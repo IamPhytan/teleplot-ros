@@ -64,12 +64,20 @@ class HuskySuscriber:
 
     def gps_cback(self, msg):
         """GPS data"""
-        time = msg.header.stamp
+        time = rostime_to_msecs(msg.header.stamp)
         lat = msg.latitude
         long = msg.longitude
         alt = msg.altitude
         send_telemetry("gps", lat, long, mode=PlotMode.XY)
         send_telemetry("altitude", time, alt)
+
+    def odom_cback(self, msg):
+        """Odometry data computed from Husky wheel encoders"""
+        time = rostime_to_msecs(msg.header.stamp)
+        linear = msg.twist.twist.linear.x
+        angular = msg.twist.twist.angular.z
+        send_telemetry("lin_odom", time, linear)
+        send_telemetry("ang_odom", time, angular)
 
 
 def teleplot_subscriber():
@@ -79,6 +87,7 @@ def teleplot_subscriber():
 
     rospy.Subscriber("husky_commanded_velocity", Twist, husky_suscriber.cmd_vel_cback)
     rospy.Subscriber("gps", NavSatFix, husky_suscriber.gps_cback)
+    rospy.Subscriber("husky_velocity_estimate", Odometry, husky_suscriber.odom_cback)
 
     rospy.spin()
 
