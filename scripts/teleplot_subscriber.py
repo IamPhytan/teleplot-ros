@@ -62,6 +62,15 @@ class HuskySuscriber:
         send_telemetry("lin_cmd", time, linear)
         send_telemetry("ang_cmd", time, angular)
 
+    def gps_cback(self, msg):
+        """GPS data"""
+        time = msg.header.stamp
+        lat = msg.latitude
+        long = msg.longitude
+        alt = msg.altitude
+        send_telemetry("gps", lat, long, mode=PlotMode.XY)
+        send_telemetry("altitude", time, alt)
+
 
 def teleplot_subscriber():
     rospy.init_node("py_subscriber", anonymous=False)
@@ -69,6 +78,7 @@ def teleplot_subscriber():
     husky_suscriber = HuskySuscriber()
 
     rospy.Subscriber("husky_commanded_velocity", Twist, husky_suscriber.cmd_vel_cback)
+    rospy.Subscriber("gps", NavSatFix, husky_suscriber.gps_cback)
 
     rospy.spin()
 
