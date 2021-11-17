@@ -68,7 +68,7 @@ def teleplot_subscriber():
 
     husky_suscriber = HuskySuscriber()
 
-    rospy.Subscriber("status", HuskyStatus, husky_suscriber.cmd_vel_cback)
+    rospy.Subscriber("husky_commanded_velocity", Twist, husky_suscriber.cmd_vel_cback)
 
     rospy.spin()
 
