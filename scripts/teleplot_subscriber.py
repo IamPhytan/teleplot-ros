@@ -1,54 +1,18 @@
 #!/usr/bin/env python
-from __future__ import print_function, division
-
-import socket
-from enum import Enum
+from __future__ import division, print_function
 
 import rospy
 from geometry_msgs.msg import Twist
 from husky_msgs.msg import HuskyStatus
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Imu, JointState, NavSatFix
 from rosgraph_msgs.msg import Clock
+from sensor_msgs.msg import Imu, JointState, NavSatFix
 
-# Teleplot socket parameters
-TELEPLOT_ADDR = ("127.0.0.1", 47269)
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-class PlotMode(Enum):
-    TIME = "g"
-    XY = "xy"
+import utils as u
+from utils import PlotMode
 
 
-def send_telemetry(name, time, value, mode=PlotMode.TIME):
-    """Send telemetry data as a UDP packet
-
-    Args:
-        name (str): Variable name
-        time (int): time, in milliseconds
-        value (float): value to plot
-        mode (PlotMode enum value, optional): Plotting mode. Defaults to PlotMode.TIME.
-    """
-    pkt_message = "{name}:{time}:{value}|{mode}".format(
-        name=name, time=time, value=value, mode=mode.value
-    )
-    sock.sendto(pkt_message.encode(), TELEPLOT_ADDR)
-
-
-def rostime_to_msecs(rostime):
-    """Convert rostime to milliseconds
-
-    Args:
-        rostime (rospy.Time): Rospy Time object to convert
-
-    Returns:
-        int: time in milliseconds
-    """
-    return rostime.to_nsec() // 1e6
-
-
-class HuskySuscriber:
+class HuskySubscriber:
     """Process data from a rosbag and send it to Teleplot
 
     This example was developed with the rosbags from the Enav Planetary Dataset
@@ -56,38 +20,54 @@ class HuskySuscriber:
 
     def cmd_vel_cback(self, msg):
         """Commanded velocities of the Husky rover base"""
-        time = rostime_to_msecs(rospy.Time.now())
+        time = u.rostime_to_msecs(rospy.Time.now())
         linear = msg.linear.x
         angular = msg.angular.z
-        send_telemetry("lin_cmd", time, linear)
-        send_telemetry("ang_cmd", time, angular)
+        u.send_telemetry("lin_cmd", time, linear)
+        u.send_telemetry("ang_cmd", time, angular)
 
     def gps_cback(self, msg):
         """GPS data"""
-        time = rostime_to_msecs(msg.header.stamp)
+        time = u.rostime_to_msecs(msg.header.stamp)
         lat = msg.latitude
         long = msg.longitude
         alt = msg.altitude
-        send_telemetry("gps", lat, long, mode=PlotMode.XY)
-        send_telemetry("altitude", time, alt)
+        u.send_telemetry("gps", lat, long, mode=PlotMode.XY)
+        u.send_telemetry("altitude", time, alt)
 
     def odom_cback(self, msg):
         """Odometry data computed from Husky wheel encoders"""
-        time = rostime_to_msecs(msg.header.stamp)
+        time = u.rostime_to_msecs(msg.header.stamp)
         linear = msg.twist.twist.linear.x
         angular = msg.twist.twist.angular.z
-        send_telemetry("lin_odom", time, linear)
-        send_telemetry("ang_odom", time, angular)
+        u.send_telemetry("lin_odom", time, linear)
+        u.send_telemetry("ang_odom", time, angular)
+
+    def pose_cback(self, msg):
+        """Pose estimates from VINS-Fusion"""
+        time = u.rostime_to_msecs(msg.header.stamp)
+        pose = msg.pose.pose
+        pose_x = pose.position.x
+        pose_y = pose.position.y
+        pose_z = pose.position.z
+
+        orient = msg.pose.pose.orientation
+        r, p, y = u.rpy_from_quaternion(orient)
+
+        u.send_telemetry("roll", time, r)
+        u.send_telemetry("pitch", time, p)
+        u.send_telemetry("yaw", time, y)
 
 
 def teleplot_subscriber():
     rospy.init_node("py_subscriber", anonymous=False)
 
-    husky_suscriber = HuskySuscriber()
+    husky_subs = HuskySubscriber()
 
-    rospy.Subscriber("husky_commanded_velocity", Twist, husky_suscriber.cmd_vel_cback)
-    rospy.Subscriber("gps", NavSatFix, husky_suscriber.gps_cback)
-    rospy.Subscriber("husky_velocity_estimate", Odometry, husky_suscriber.odom_cback)
+    rospy.Subscriber("husky_commanded_velocity", Twist, husky_subs.cmd_vel_cback)
+    rospy.Subscriber("husky_velocity_estimate", Odometry, husky_subs.odom_cback)
+    rospy.Subscriber("gps", NavSatFix, husky_subs.gps_cback)
+    rospy.Subscriber("global_odometry_utm", Odometry, husky_subs.pose_cback)
 
     rospy.spin()
 
