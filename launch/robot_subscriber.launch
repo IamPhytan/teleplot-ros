@@ -1,5 +1,5 @@
 <<?xml version="1.0"?>
 <launch>
-    <param name="/use_sime_time" value="false"/>
-    <node pkg="teleplot_ros" type="teleplot_subscriber" name="teleplot_subscriber_node"/>
+<param name="use_sim_time" value="false"/>
+<node pkg="teleplot_ros" type="teleplot_subscriber" name="teleplot_subscriber_node"/>
 </launch>
