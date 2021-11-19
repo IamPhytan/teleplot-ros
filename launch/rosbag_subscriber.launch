@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Launch with the following command:
+ roslaunch teleplot_ros rosbag_subscriber.launch bagfile:="<bagfile path>"-->
+
+    <param name="use_sim_time" value="true"/>
+    <node pkg="teleplot_ros" type="teleplot_subscriber.py" name="teleplot_subscriber_node"/>
+
+    <arg name="bagfile"/>
+    <node pkg="rosbag" type="play" name="player" output="screen" args="--clock $(arg bagfile)" />
+
+</launch>
