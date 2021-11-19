@@ -2,7 +2,7 @@
 
 > Send ROS telemetry and data to [_Teleplot_](https://github.com/nesnes/teleplot) for realtime and rosbag plots that feels like a breeze.
 
-![Example of a browser window with teleplot](https://github.com/nesnes/teleplot/raw/main/images/preview.jpg)
+![Example of teleplot with ROS telemetry](images/preview.png)
 
 ## Usage
 
